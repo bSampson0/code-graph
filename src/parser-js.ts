@@ -1,7 +1,7 @@
 import Parser from "tree-sitter";
 import JavaScript from "tree-sitter-javascript";
-// @ts-ignore — tree-sitter-typescript exports { typescript, tsx }
-import { typescript, tsx } from "tree-sitter-typescript";
+import treeSitterTypeScript from "tree-sitter-typescript";
+const { typescript, tsx } = treeSitterTypeScript;
 import fs from "fs";
 import path from "path";
 
