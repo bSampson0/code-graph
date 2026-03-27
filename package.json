@@ -1,7 +1,7 @@
 {
-  "name": "java-code-graph",
+  "name": "code-graph",
   "version": "1.0.0",
-  "description": "",
+  "description": "Parse any Java or Node.js GitHub repo into a Neo4j graph and chat with it using a local LLM",
   "main": "index.js",
   "scripts": {
     "start": "tsx src/index.ts",

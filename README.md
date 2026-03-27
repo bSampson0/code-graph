@@ -30,7 +30,7 @@ Parse a GitHub repository (Java or Node.js) and map its classes, functions, and 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/code-graph.git
+git clone https://github.com/bSampson0/code-graph.git
 cd code-graph
 npm install
 ```
