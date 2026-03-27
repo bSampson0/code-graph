@@ -11,7 +11,6 @@ import { summarizeCodebase } from "./llm.js";
 type ProjectType = "java" | "node";
 
 function detectProjectType(dir: string): ProjectType {
-  // Prefer Node if there's a package.json at root
   if (existsSync(join(dir, "package.json"))) return "node";
   return "java";
 }
@@ -37,7 +36,6 @@ async function run() {
     console.log(`Detected project type: ${projectType}`);
 
     let files: string[];
-
     if (projectType === "node") {
       files = await fg("**/*.{js,ts,mjs,cjs}", {
         cwd: tmpDir,
@@ -50,32 +48,60 @@ async function run() {
     console.log(`Found ${files.length} ${projectType === "node" ? "JS/TS" : "Java"} file(s).`);
 
     for (const file of files) {
-
       console.log("Parsing:", file);
 
       const parsed = projectType === "node"
         ? parseJsFile(join(tmpDir, file))
         : parseJavaFile(join(tmpDir, file));
 
-      for (const method of parsed) {
+      // ── classes ────────────────────────────────────────────────────────────
+      for (const cls of parsed.classes) {
+        await graph.createClass(cls.name, { kind: cls.kind, modifiers: cls.modifiers, annotations: cls.annotations });
 
-        await graph.createClass(method.className);
-        await graph.createMethod(method.methodName);
-        await graph.linkClassMethod(
-          method.className,
-          method.methodName
-        );
-
-        for (const call of method.calls) {
-          await graph.createMethod(call);
-          await graph.linkMethodCall(
-            method.methodName,
-            call
-          );
+        if (cls.superClass) {
+          await graph.createClass(cls.superClass, { kind: "class" });
+          await graph.linkClassExtends(cls.name, cls.superClass);
         }
 
+        for (const iface of cls.interfaces) {
+          await graph.createClass(iface, { kind: "interface" });
+          await graph.linkClassImplements(cls.name, iface);
+        }
+
+        for (const field of cls.fields) {
+          await graph.createField(field.name, field.type, field.modifiers);
+          await graph.linkClassField(cls.name, field.name);
+        }
       }
 
+      // ── methods ────────────────────────────────────────────────────────────
+      for (const method of parsed.methods) {
+        await graph.createMethod(method.methodName, {
+          returnType: method.returnType,
+          params: method.params.map(p => `${p.name}:${p.type}`),
+          modifiers: method.modifiers,
+          annotations: method.annotations,
+        });
+        await graph.linkClassMethod(method.className, method.methodName);
+
+        for (const call of method.calls) {
+          await graph.createMethod(call, {});
+          await graph.linkMethodCall(method.methodName, call);
+        }
+
+        for (const exc of method.throws) {
+          await graph.createException(exc);
+          await graph.linkMethodThrows(method.methodName, exc);
+        }
+      }
+
+      // ── imports ────────────────────────────────────────────────────────────
+      for (const imp of parsed.imports) {
+        await graph.createModule(imp);
+        for (const cls of parsed.classes) {
+          await graph.linkClassImports(cls.name, imp);
+        }
+      }
     }
 
     const classNames = await graph.getClassNames();

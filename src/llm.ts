@@ -4,10 +4,20 @@ const MODEL = process.env.OLLAMA_MODEL ?? "llama3";
 
 const SCHEMA = `
 Neo4j graph schema:
-- (:Class {name: string})  — a Java class
-- (:Method {name: string}) — a Java method
-- (:Class)-[:DECLARES]->(:Method)  — a class declares a method
-- (:Method)-[:CALLS]->(:Method)    — a method calls another method
+- (:Class  { name, kind: "class"|"interface"|"abstract", modifiers: [], annotations: [] })
+- (:Method { name, returnType, params: ["name:type",...], modifiers: [], annotations: [] })
+- (:Field  { name, type, modifiers: [] })
+- (:Module { name })       — imported package or module path
+- (:Exception { name })   — thrown exception type
+
+Relationships:
+- (:Class)-[:DECLARES]->(:Method)
+- (:Class)-[:EXTENDS]->(:Class)
+- (:Class)-[:IMPLEMENTS]->(:Class)
+- (:Class)-[:HAS_FIELD]->(:Field)
+- (:Class)-[:IMPORTS]->(:Module)
+- (:Method)-[:CALLS]->(:Method)
+- (:Method)-[:THROWS]->(:Exception)
 `.trim();
 
 export async function generateCypher(question: string): Promise<string> {
